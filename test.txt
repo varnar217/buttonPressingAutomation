@@ -1,0 +1,45 @@
+train tensorflow to recognize a picture and return the coordinates of its center example code
+import tensorflow as tf
+import numpy as np
+import cv2
+
+# Load the pre-trained MobileNetV2 model
+model = tf.keras.applications.MobileNetV2(weights='imagenet')
+
+# Preprocess the input image
+def preprocess_image(image):
+    image = cv2.resize(image, (224, 224))
+    image = tf.keras.applications.mobilenet_v2.preprocess_input(image)
+    return image
+
+# Post-process the predictions to return coordinates of the center
+def postprocess_predictions(predictions):
+    classes = tf.keras.applications.mobilenet_v2.decode_predictions(predictions, top=1)[0]
+    class_name = classes[0][1]
+    class_id = classes[0][0]
+    return class_name, class_id
+
+# Load and preprocess the example image
+image_path = 'example_image.jpg'
+image = cv2.imread(image_path)
+preprocessed_image = preprocess_image(image)
+
+# Make predictions on the preprocessed image
+predictions = model.predict(np.expand_dims(preprocessed_image, axis=0))
+
+# Post-process the predictions
+class_name, class_id = postprocess_predictions(predictions)
+
+print("Predicted class:", class_name)
+print("Predicted class ID:", class_id)
+
+# Calculate coordinates of the center
+height, width, _ = image.shape
+center_x = int(width / 2)
+center_y = int(height / 2)
+
+print("Center coordinates: ({}, {})".format(center_x, center_y))
+
+
+
+

@@ -1,0 +1,4 @@
+numpy==1.21.6
+opencv-contrib-python==3.4.16.59
+opencv-python==4.7.0.72
+opencv-python-headless==4.8.0.74

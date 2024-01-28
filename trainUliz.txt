@@ -1,0 +1,77 @@
+Чтобы подготовить изображения для обучения модели в TensorFlow и определения координат объектов, вам нужно выполнить несколько шагов. Приведу пример на Python 3, используя TensorFlow и библиотеку Pillow для работы с изображениями.
+
+1. Установка библиотек:
+bash
+Copy code
+pip install tensorflow pillow
+2. Подготовка данных:
+Допустим, у вас есть изображения и файл разметки, содержащий координаты объектов. В этом примере, предположим, что файл разметки имеет формат CSV с колонками filename, xmin, ymin, xmax, ymax.
+
+3. Пример кода:
+python
+Copy code
+import tensorflow as tf
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+from PIL import Image
+import pandas as pd
+import numpy as np
+
+# Загрузка данных
+csv_path = 'annotations.csv'
+image_dir = 'images/'
+
+# Чтение CSV файла с координатами объектов
+annotations = pd.read_csv(csv_path)
+
+# Создание списков для хранения данных
+image_paths = []
+bounding_boxes = []
+
+# Проход по каждой строке в файле разметки
+for index, row in annotations.iterrows():
+    image_path = image_dir + row['filename']
+    image_paths.append(image_path)
+    
+    # Координаты объекта
+    xmin, ymin, xmax, ymax = row['xmin'], row['ymin'], row['xmax'], row['ymax']
+    
+    # Нормализация координат
+    bounding_box = [xmin, ymin, xmax, ymax]
+    bounding_boxes.append(bounding_box)
+
+# Загрузка изображений и их предварительная обработка
+def load_and_preprocess_image(image_path, bounding_box):
+    img = Image.open(image_path)
+    
+    # Обрезка изображения по координатам bounding_box
+    img = img.crop(bounding_box)
+    
+    # Масштабирование до размеров, подходящих для модели (например, MobileNetV2)
+    img = img.resize((224, 224))
+    
+    # Преобразование в массив NumPy и нормализация
+    img_array = image.img_to_array(img)
+    img_array = preprocess_input(img_array)
+    
+    return img_array
+
+# Преобразование данных в массив NumPy
+X = np.array([load_and_preprocess_image(path, box) for path, box in zip(image_paths, bounding_boxes)])
+
+# Создание тензора с координатами bounding box
+Y = tf.constant(bounding_boxes, dtype=tf.float32)
+
+# Создание и обучение модели (пример с использованием MobileNetV2)
+model = tf.keras.applications.MobileNetV2(include_top=False, input_shape=(224, 224, 3))
+model.trainable = False
+
+model = tf.keras.Sequential([
+    model,
+    tf.keras.layers.GlobalAveragePooling2D(),
+    tf.keras.layers.Dense(4)  # 4 выхода для координат (xmin, ymin, xmax, ymax)
+])
+
+model.compile(optimizer='adam', loss='mean_squared_error')
+model.fit(X, Y, epochs=10)
+Этот код предоставляет базовый пример для подготовки изображений и их координат для обучения модели в TensorFlow. Обратите внимание, что вам, возможно, потребуется настроить его в соответствии с вашими данными и требованиями.
